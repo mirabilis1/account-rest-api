@@ -84,6 +84,17 @@ public class AccountControllerTest {
 				.andExpect(jsonPath("message").value("account successfully deleted"));
 
     }
+	
+	@Test
+	public void badRequest() throws Exception {		
+		given(accountService.getAccountById(5L)).willReturn(null);
+		
+		mockMvc.perform(MockMvcRequestBuilders.delete("/api/account/5")
+				.contentType(MediaType.APPLICATION_JSON_UTF8_VALUE)
+				.accept(MediaType.APPLICATION_JSON_UTF8_VALUE))
+				.andExpect(status().isBadRequest());
+
+    }
 
 
 }
