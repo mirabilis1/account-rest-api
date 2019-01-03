@@ -2,7 +2,9 @@ package com.mirabilis.account;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -24,10 +26,11 @@ import com.mirabilis.account.model.Account;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(locations = "classpath:application-integrationtest.properties")
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class AccountApiIntegrationTests {
+public class AccountApiIntegrationTests extends BaseTestCase {
 
 	@Autowired
-	private TestRestTemplate testRestTemplate;
+	private TestRestTemplate testRestTemplate;	
+		
 
 	/**
 	 * Integration test for RESTful GET Endpoint to get all accounts
@@ -35,45 +38,36 @@ public class AccountApiIntegrationTests {
 	@Test
 	public void firstTest() {
 		ParameterizedTypeReference<List<Account>> responseType = new ParameterizedTypeReference<List<Account>>() {};
-		ResponseEntity<List<Account>> response = testRestTemplate.exchange("/api/account", HttpMethod.GET, null, responseType);
-		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);		
-		assertThat(response.getBody().get(0).getId()).isEqualTo(1);
-		assertThat(response.getBody().get(0).getFirstName()).isEqualTo("John");
-		assertThat(response.getBody().get(0).getLastName()).isEqualTo("Doe");
-		assertThat(response.getBody().get(0).getAccountNumber()).isEqualTo("1234");
-		assertThat(response.getBody().get(1).getId()).isEqualTo(2);
-		assertThat(response.getBody().get(1).getFirstName()).isEqualTo("Jane");
-		assertThat(response.getBody().get(1).getLastName()).isEqualTo("Doe");
-		assertThat(response.getBody().get(1).getAccountNumber()).isEqualTo("1235");
-		assertThat(response.getBody().get(2).getId()).isEqualTo(3);
-		assertThat(response.getBody().get(2).getFirstName()).isEqualTo("Jim");
-		assertThat(response.getBody().get(2).getLastName()).isEqualTo("Taylor");
-		assertThat(response.getBody().get(2).getAccountNumber()).isEqualTo("1236");
+		ResponseEntity<List<Account>> response = testRestTemplate.exchange(BASE_END_POINT, HttpMethod.GET, null, responseType);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		List<Account> intersection = accounts.stream()
+				.filter(response.getBody()::contains)
+				.collect(Collectors.toList());
+		// response contains first three items of the List accounts
+		assertThat(intersection.size() == 3).isTrue();	
+		assertThat(intersection.contains(accounts.get(3))).isFalse();
 	}
 
 	/**
 	 * Integration test for RESTful POST Endpoint to create a new account
 	 */
 	@Test
-	public void secondTest() {
-		Account account = new Account(null, "Steven", "Doe", "1237");
-		String responseJson = testRestTemplate.postForObject("/api/account", account , String.class);
+	public void secondTest() {		
+		String responseJson = testRestTemplate.postForObject(BASE_END_POINT, accountToBeSaved , String.class);
 		assertThat(responseJson).isEqualTo("{\"message\":\"account has been successfully added\"}");
 		
 		ParameterizedTypeReference<List<Account>> responseType = new ParameterizedTypeReference<List<Account>>() {};
-		ResponseEntity<List<Account>> response = testRestTemplate.exchange("/api/account", HttpMethod.GET, null, responseType);		
-		assertThat(response.getBody().get(3).getId()).isEqualTo(4);
-		assertThat(response.getBody().get(3).getFirstName()).isEqualTo("Steven");
-		assertThat(response.getBody().get(3).getLastName()).isEqualTo("Doe");
-		assertThat(response.getBody().get(3).getAccountNumber()).isEqualTo("1237");
+		ResponseEntity<List<Account>> response = testRestTemplate.exchange(BASE_END_POINT, HttpMethod.GET, null, responseType);		
+		assertThat(response.getBody().size()).isEqualTo(4);
+        assertThat(response.getBody().containsAll(accounts)).isTrue();		
 	}
 	
 	/**
 	 * Integration test for RESTful DELETE Endpoint to delete an existing account
 	 */
 	@Test
-	public void thirdTest() {
-		ResponseEntity<String> responseJson = testRestTemplate.exchange("/api/account/1", HttpMethod.DELETE, null, String.class);
+	public void thirdTest() {		
+		ResponseEntity<String> responseJson = testRestTemplate.exchange(String.join("", Arrays.asList(BASE_END_POINT, "/1")), HttpMethod.DELETE, null, String.class);
 
 		assertThat(responseJson.getBody()).isEqualTo("{\"message\":\"account successfully deleted\"}");
 	}

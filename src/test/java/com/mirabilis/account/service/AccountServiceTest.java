@@ -7,8 +7,6 @@ import static org.mockito.Mockito.verify;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -17,15 +15,17 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.mirabilis.account.BaseTestCase;
 import com.mirabilis.account.dao.AccountDao;
 import com.mirabilis.account.model.Account;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AccountServiceTest {
+public class AccountServiceTest extends BaseTestCase {
 	@Mock
 	private AccountDao accountDao;
 
 	private AccountService accountService;
+		
 
 	@Before
 	public void setUp() {
@@ -34,54 +34,38 @@ public class AccountServiceTest {
 
 	@Test
 	public void getAllAccounts() {
-		Account[] arr = { new Account(1L, "John", "Doe", "1234"), new Account(2L, "Jane", "Doe", "1235") };
-		List<Account> accounts = Stream.of(arr).collect(Collectors.toList());
-
 		given(accountDao.findAll()).willReturn(accounts);
 
 		List<Account> accountsFetched = accountService.getAllAccounts();
-		assertThat(accountsFetched.size()).isEqualTo(2);
-		assertThat(accountsFetched.get(0).getFirstName()).isEqualTo("John");
-		assertThat(accountsFetched.get(0).getLastName()).isEqualTo("Doe");
-		assertThat(accountsFetched.get(0).getAccountNumber()).isEqualTo("1234");
+		assertThat(accountsFetched.size()).isEqualTo(4);
+        assertThat(accountsFetched.containsAll(accounts)).isTrue();
 	}
 	
 	@Test
-	public void getAccountById() {
-		Account account = new Account(1L, "John", "Doe", "1234");
-		Optional<Account> optional = Optional.of(account);
+	public void getAccountById() {		
+		Optional<Account> optional = Optional.of(accounts.get(1));
 		
-		given(accountDao.findById(1L)).willReturn(optional);
+		given(accountDao.findById(2L)).willReturn(optional);
 		
-		Account accountFetched = accountService.getAccountById(1L);
-		assertThat(accountFetched.getFirstName()).isEqualTo("John");
-		assertThat(accountFetched.getLastName()).isEqualTo("Doe");
-		assertThat(accountFetched.getAccountNumber()).isEqualTo("1234");
+		Account accountFetched = accountService.getAccountById(2L);
+		assertThat(accountFetched.equals(accounts.get(1))).isTrue();		
 	}	
 
 	@Test
-	public void saveAccount() {
-		Account accountToBeSaved = new Account(null, "John", "Doe", "1234");
-		Account accountSaved = new Account(1L, "John", "Doe", "1234");
-
-		given(accountDao.save(accountToBeSaved)).willReturn(accountSaved);
+	public void saveAccount() {		
+		given(accountDao.save(accountToBeSaved)).willReturn(accounts.get(3));
 
 		Account accountFetched = accountService.saveAccount(accountToBeSaved);
-		assertThat(accountFetched.getId()).isEqualTo(1L);
-		assertThat(accountFetched.getFirstName()).isEqualTo("John");
-		assertThat(accountFetched.getLastName()).isEqualTo("Doe");
-		assertThat(accountFetched.getAccountNumber()).isEqualTo("1234");
+		assertThat(accountFetched.equals(accounts.get(3))).isTrue();	
 	}
 	
 	@Test
-    public void deleteAccount(){
-        Account accountToBeDeleted = new Account(1L, "John", "Doe", "1234");
-
-        Mockito.doNothing().when(accountDao).delete(accountToBeDeleted);
+    public void deleteAccount(){ 
+        Mockito.doNothing().when(accountDao).delete(accounts.get(0));
         
-        accountService.deleteAccount(accountToBeDeleted);
+        accountService.deleteAccount(accounts.get(0));
 
-        verify(accountDao, times(1)).delete(accountToBeDeleted);
+        verify(accountDao, times(1)).delete(accounts.get(0));
     }
 	
 }
